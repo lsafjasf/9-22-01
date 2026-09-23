@@ -1,0 +1,60 @@
+{
+  "migration_id": "m2026_09_users_v2",
+  "table": "users",
+  "batch_size": 500,
+  "description": "users 表 v2：拆分姓名、年龄改整型、补邮箱与状态默认值、下线 legacy_flag、合并地址、重建邮箱索引",
+  "steps": [
+    {
+      "id": "add_email",
+      "type": "add_field",
+      "field": "email",
+      "field_type": "TEXT",
+      "default": "",
+      "backfill": true
+    },
+    {
+      "id": "split_full_name",
+      "type": "split_field",
+      "source": "full_name",
+      "targets": ["first_name", "last_name"],
+      "delimiter": " ",
+      "keep_source": true
+    },
+    {
+      "id": "age_to_int",
+      "type": "change_type",
+      "field": "age",
+      "from": "TEXT",
+      "to": "INTEGER",
+      "conversion": {"kind": "cast", "to": "INTEGER", "on_error": "null"}
+    },
+    {
+      "id": "fill_status",
+      "type": "backfill_default",
+      "field": "status",
+      "value": "inactive"
+    },
+    {
+      "id": "merge_address",
+      "type": "merge_fields",
+      "sources": ["city", "street"],
+      "target": "address",
+      "separator": " ",
+      "keep_sources": true,
+      "depends_on": ["split_full_name"]
+    },
+    {
+      "id": "drop_legacy_flag",
+      "type": "drop_field",
+      "field": "legacy_flag",
+      "depends_on": ["fill_status"]
+    },
+    {
+      "id": "rebuild_email_idx",
+      "type": "rebuild_index",
+      "index": "idx_users_email",
+      "fields": ["email"],
+      "depends_on": ["add_email"]
+    }
+  ]
+}

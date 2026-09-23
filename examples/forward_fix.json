@@ -1,0 +1,26 @@
+{
+  "migration_id": "m2026_09_users_v2_fix1",
+  "table": "users",
+  "batch_size": 500,
+  "description": "前向修复示例：v2 迁移上线后发现 email 不应为空串，回填占位邮箱并重建索引（补偿式迁移，不回退 v2）",
+  "steps": [
+    {
+      "id": "fix_empty_email",
+      "type": "backfill_default",
+      "field": "email",
+      "value": "unknown@example.invalid",
+      "match": ""
+    },
+    {
+      "id": "rebuild_email_idx_v2",
+      "type": "rebuild_index",
+      "index": "idx_users_email",
+      "fields": [
+        "email"
+      ],
+      "depends_on": [
+        "fix_empty_email"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "migration_id": "m2026_09_users_v2",
+  "table": "users",
+  "generated_at": "2026-09-23T17:33:39+00:00",
+  "replica_rows": 2000,
+  "production_rows": 20000,
+  "steps": [
+    {
+      "step_id": "add_email",
+      "type": "add_field",
+      "affected_rows": 0,
+      "measured_ms": 6.41,
+      "estimated_full_ms": 64.08
+    },
+    {
+      "step_id": "split_full_name",
+      "type": "split_field",
+      "affected_rows": 2000,
+      "measured_ms": 19.85,
+      "estimated_full_ms": 198.5
+    },
+    {
+      "step_id": "age_to_int",
+      "type": "change_type",
+      "affected_rows": 4000,
+      "measured_ms": 42.31,
+      "estimated_full_ms": 423.13
+    },
+    {
+      "step_id": "fill_status",
+      "type": "backfill_default",
+      "affected_rows": 2666,
+      "measured_ms": 26.75,
+      "estimated_full_ms": 267.51
+    },
+    {
+      "step_id": "merge_address",
+      "type": "merge_fields",
+      "affected_rows": 2000,
+      "measured_ms": 19.4,
+      "estimated_full_ms": 194.0
+    },
+    {
+      "step_id": "drop_legacy_flag",
+      "type": "drop_field",
+      "affected_rows": 2000,
+      "measured_ms": 22.1,
+      "estimated_full_ms": 221.02
+    },
+    {
+      "step_id": "rebuild_email_idx",
+      "type": "rebuild_index",
+      "affected_rows": 0,
+      "measured_ms": 4.1,
+      "estimated_full_ms": 40.96
+    }
+  ],
+  "total_measured_ms": 141.37,
+  "total_estimated_ms": 1413.68,
+  "rollback_fidelity": "exact",
+  "compat_report": "  [安全] add_email: 新增字段 email：旧版本按列名读写，未知列被忽略；若旧代码使用 SELECT * 并做严格列映射则需确认\n  [风险] split_full_name: 拆分 full_name 但保留源列：旧版本可读源列不中断，但旧版本只写源列，新列 ['first_name', 'last_name'] 在双写切换前会过期（读新列可能拿到旧值）\n  [破坏] age_to_int: 字段 age 类型 TEXT -> INTEGER 为收窄/有损转换：旧版本可能写入无法转换的值，或读回被截断/转换后的值\n  [安全] fill_status: 回填 status 默认值：纯数据操作，旧版本可继续读写；注意旧读者会看到回填后的值而非 NULL\n  [风险] merge_address: 合并 ['city', 'street'] 为 address 但保留源列：旧版本读写源列不中断，但旧版本写入不会同步到合并列，切换前合并列会过期\n  [破坏] drop_legacy_flag: 删除字段 legacy_flag：旧版本读/写该列的 SQL 会直接报错，必须确认所有旧版本实例已不再引用该字段\n  [安全] rebuild_email_idx: 重建索引 idx_users_email：仅影响查询性能，不影响读写语义；建索引期间查询可能短暂变慢"
+}
