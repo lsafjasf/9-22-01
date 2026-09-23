@@ -1,0 +1,152 @@
+{
+  "dry_run": true,
+  "migration": "user-store",
+  "records_total": 200,
+  "records_rehearsed": 200,
+  "compatibility": {
+    "migration": "user-store",
+    "from_version": 1,
+    "to_version": 2,
+    "steps": [
+      {
+        "id": "add_status",
+        "type": "add_field",
+        "level": "warning",
+        "depends_on": [],
+        "issues": [
+          {
+            "level": "safe",
+            "reason": "新增字段不影响旧版本读取（旧版本应忽略未知字段）"
+          },
+          {
+            "level": "warning",
+            "reason": "若旧版本以整文档覆盖方式写入，会丢弃该新字段；需确认旧版本只写字段级更新"
+          }
+        ]
+      },
+      {
+        "id": "backfill_role",
+        "type": "backfill_default",
+        "level": "safe",
+        "depends_on": [],
+        "issues": [
+          {
+            "level": "safe",
+            "reason": "仅回填缺失或为 null 的字段，不覆盖已有值，对旧版本读写无影响"
+          }
+        ]
+      },
+      {
+        "id": "age_to_int",
+        "type": "change_type",
+        "level": "breaking",
+        "depends_on": [],
+        "issues": [
+          {
+            "level": "breaking",
+            "reason": "字段 'age' 类型 str -> int，旧版本按 str 解析将失败"
+          }
+        ]
+      },
+      {
+        "id": "rebuild_status_index",
+        "type": "rebuild_index",
+        "level": "safe",
+        "depends_on": [
+          "add_status"
+        ],
+        "issues": [
+          {
+            "level": "safe",
+            "reason": "索引 'by_status' 采用临时文件 + 原子替换重建，重建期间旧索引持续可用，不影响数据读写"
+          }
+        ]
+      },
+      {
+        "id": "split_name",
+        "type": "split_field",
+        "level": "breaking",
+        "depends_on": [
+          "age_to_int"
+        ],
+        "issues": [
+          {
+            "level": "breaking",
+            "reason": "拆分后删除源字段 'name'，旧版本读写该字段将失败"
+          }
+        ]
+      },
+      {
+        "id": "drop_legacy_tags",
+        "type": "drop_field",
+        "level": "breaking",
+        "depends_on": [
+          "split_name"
+        ],
+        "issues": [
+          {
+            "level": "breaking",
+            "reason": "删除字段 'tags' 后，旧版本读取该字段将得到缺失值，旧版本写入可能重新引入该字段造成脏数据"
+          }
+        ]
+      }
+    ],
+    "overall": "breaking",
+    "requires_confirmation": true
+  },
+  "steps": [
+    {
+      "id": "add_status",
+      "type": "add_field",
+      "examined": 200,
+      "changed": 200,
+      "elapsed": 0.837749,
+      "changed_estimated": 200
+    },
+    {
+      "id": "backfill_role",
+      "type": "backfill_default",
+      "examined": 200,
+      "changed": 200,
+      "elapsed": 0.838195,
+      "changed_estimated": 200
+    },
+    {
+      "id": "age_to_int",
+      "type": "change_type",
+      "examined": 200,
+      "changed": 200,
+      "elapsed": 0.831956,
+      "changed_estimated": 200
+    },
+    {
+      "id": "rebuild_status_index",
+      "type": "rebuild_index",
+      "examined": 200,
+      "changed": 200,
+      "elapsed": 0.011832,
+      "index_keys": 1,
+      "changed_estimated": 200
+    },
+    {
+      "id": "split_name",
+      "type": "split_field",
+      "examined": 200,
+      "changed": 200,
+      "elapsed": 0.818461,
+      "changed_estimated": 200
+    },
+    {
+      "id": "drop_legacy_tags",
+      "type": "drop_field",
+      "examined": 200,
+      "changed": 200,
+      "elapsed": 0.835411,
+      "changed_estimated": 200
+    }
+  ],
+  "changed_total": 1200,
+  "changed_total_estimated": 1200,
+  "elapsed_seconds": 4.227394,
+  "estimated_seconds_full": 4.227
+}

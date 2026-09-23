@@ -1,0 +1,48 @@
+{
+  "name": "user-store",
+  "from_version": 1,
+  "to_version": 2,
+  "steps": [
+    {
+      "id": "add_status",
+      "type": "add_field",
+      "field": "status",
+      "default": "active"
+    },
+    {
+      "id": "backfill_role",
+      "type": "backfill_default",
+      "field": "role",
+      "default": "user"
+    },
+    {
+      "id": "age_to_int",
+      "type": "change_type",
+      "field": "age",
+      "from": "str",
+      "to": "int"
+    },
+    {
+      "id": "split_name",
+      "type": "split_field",
+      "field": "name",
+      "into": ["first_name", "last_name"],
+      "separator": " ",
+      "keep_source": false,
+      "depends_on": ["age_to_int"]
+    },
+    {
+      "id": "drop_legacy_tags",
+      "type": "drop_field",
+      "field": "tags",
+      "depends_on": ["split_name"]
+    },
+    {
+      "id": "rebuild_status_index",
+      "type": "rebuild_index",
+      "index": "by_status",
+      "field": "status",
+      "depends_on": ["add_status"]
+    }
+  ]
+}
